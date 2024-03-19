@@ -1,15 +1,11 @@
+from langchain_core.prompts import PromptTemplate
 import streamlit as st
-import random
+
 import time
-
-# from langchain_core.messages import HumanMessage
-# from langchain_openai import AzureChatOpenAI
 import os
-
 
 from utils.llm_model import llm
 from utils.embedding import embedding
-
 
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import CharacterTextSplitter
@@ -36,20 +32,15 @@ for file in os.listdir("docs"):
         loader = TextLoader(text_path)
         documents.extend(loader.load())
 
-
 # Split the documents into smaller chunks
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=10)
 documents = text_splitter.split_documents(documents)
-
 
 vectordb = Chroma.from_documents(documents,
                                 embedding=embedding,
                                 persist_directory="./data")
 vectordb.persist()
 
-
-#------------------- prompt ----------------------------
-from langchain_core.prompts import PromptTemplate
 
 prompt_template = """
     Mở đầu, bạn chỉ cần hỏi khách thông tin về màu sắc và cỡ áo một cách ngắn gọn.
@@ -66,7 +57,7 @@ final_prompt = PromptTemplate(
     template=prompt_template,
     input_variables=["context", "question"]
 )
-
+chat_history = []
 # create our Q&A chain
 pdf_qa = ConversationalRetrievalChain.from_llm(
     llm=llm,
@@ -76,22 +67,17 @@ pdf_qa = ConversationalRetrievalChain.from_llm(
     combine_docs_chain_kwargs={"prompt": final_prompt}
 )
 
-chat_history = [
-
-]
-# pdf_qa.invoke({"question": query, "chat_history": chat_history})
-
-# Streamed response emulator
 def response_generator(input_text):
     ans = pdf_qa.invoke({"question": input_text, "chat_history": chat_history})
-
     response = str(ans["answer"])
 
     for word in response.split():
         yield word + " "
         time.sleep(0.05)
 
-st.title("Assistant Bot")
+
+##---------------chatbot setup-----------
+st.title("Shop Assistant")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -115,7 +101,3 @@ if prompt := st.chat_input("What is up?"):
         response = st.write_stream(response_generator(prompt))
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
-
-
-
-
