@@ -1,3 +1,5 @@
+
+
 from langchain_core.prompts import PromptTemplate
 import streamlit as st
 
@@ -6,6 +8,7 @@ import os
 
 from utils.llm_model import llm
 from utils.embedding import embedding
+from utils.qna import qnaans
 
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import CharacterTextSplitter
@@ -13,7 +16,6 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
-
 
 #------------- document load ------------------
 documents = []
@@ -41,7 +43,6 @@ vectordb = Chroma.from_documents(documents,
                                 persist_directory="./data")
 vectordb.persist()
 
-
 prompt_template = """
     Mở đầu, bạn chỉ cần hỏi khách thông tin về màu sắc và cỡ áo một cách ngắn gọn.
     Chỉ hội thoại ngắn gọn trọng tâm câu hỏi một cách lịch sự.
@@ -67,17 +68,33 @@ pdf_qa = ConversationalRetrievalChain.from_llm(
     combine_docs_chain_kwargs={"prompt": final_prompt}
 )
 
-def response_generator(input_text):
-    ans = pdf_qa.invoke({"question": input_text, "chat_history": chat_history})
-    response = str(ans["answer"])
 
+
+# Streamed response emulator
+def response_generator(input_quest):
+    try:
+        for an in qnaans:
+            if input_quest in an[0]:
+                response = an[1]
+                break
+            else:
+                ans_ = pdf_qa.invoke({"question": input_quest, "chat_history": chat_history})
+                response = str(ans_["answer"])
+    except:
+        response = "Xin lỗi, bạn có thể cung cấp thêm thông tin câu hỏi được không?"
+    # response = random.choice(
+    #     [
+    #         "Hello there! How can I assist you today?",
+    #         "Hi, human! Is there anything I can help you with?",
+    #         "Do you need help?",
+    #     ]
+    # )
     for word in response.split():
         yield word + " "
         time.sleep(0.05)
 
 
-##---------------chatbot setup-----------
-st.title("Shop Assistant")
+st.title("Simple chat")
 
 # Initialize chat history
 if "messages" not in st.session_state:
