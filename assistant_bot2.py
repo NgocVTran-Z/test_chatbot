@@ -1,11 +1,11 @@
 import streamlit as st
 import random
 import time
-from utils.qna import ans
+from utils.qna import qnaans
 
 # Streamed response emulator
 def response_generator(input_quest):
-    for an in ans:
+    for an in qnaans:
         if input_quest in an[0]:
             response = an[1]
             break
